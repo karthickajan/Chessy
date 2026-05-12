@@ -48,12 +48,33 @@ PIECE_MODEL_PATH = "best.pt"
 CONF_THRESHOLD   = 0.5
 
 CLASS_TO_FEN = {
-    0: 'b', 1: 'b', 2: 'k', 3: 'k', 4: 'n', 5: 'n',
-    6: 'board',
-    7: 'p', 8: 'p', 9: 'q', 10: 'q', 11: 'r', 12: 'r',
-    13: 'eb', 14: 'ew',
-    15: 'B', 16: 'B', 17: 'K', 18: 'K', 19: 'N', 20: 'N',
-    21: 'P', 22: 'P', 23: 'Q', 24: 'Q', 25: 'R', 26: 'R',
+    0: 'b',   # bbb - black bishop on black square
+    1: 'b',   # bbw - black bishop on white square
+    2: 'k',   # bkb - black king on black square
+    3: 'k',   # bkw - black king on white square
+    4: 'n',   # bnb - black knight on black square
+    5: 'n',   # bnw - black knight on white square
+    6: None,  # board - ignore
+    7: 'p',   # bpb - black pawn on black square
+    8: 'p',   # bpw - black pawn on white square
+    9: 'q',   # bqb - black queen on black square
+    10: 'q',  # bqw - black queen on white square
+    11: 'r',  # brb - black rook on black square
+    12: 'r',  # brw - black rook on white square
+    13: None, # eb  - empty black square
+    14: None, # ew  - empty white square
+    15: 'B',  # wbb - white bishop on black square
+    16: 'B',  # wbw - white bishop on white square
+    17: 'K',  # wkb - white king on black square
+    18: 'K',  # wkw - white king on white square
+    19: 'N',  # wnb - white knight on black square
+    20: 'N',  # wnw - white knight on white square
+    21: 'P',  # wpb - white pawn on black square
+    22: 'P',  # wpw - white pawn on white square
+    23: 'Q',  # wqb - white queen on black square
+    24: 'Q',  # wqw - white queen on white square
+    25: 'R',  # wrb - white rook on black square
+    26: 'R',  # wrw - white rook on white square
 }
 
 # ─────────────────────────────────────────────
@@ -132,8 +153,8 @@ def predict_tiles(tiles):
         else:
             best_idx = int(boxes.conf.argmax())
             cls = int(boxes.cls[best_idx])
-            piece = CLASS_TO_FEN.get(cls, "1")
-            fen_chars.append("1" if piece in ("board", "eb", "ew") else piece)
+            piece = CLASS_TO_FEN.get(cls)
+            fen_chars.append(piece if piece else "1")
     return fen_chars
 
 
