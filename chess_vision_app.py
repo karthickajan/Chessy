@@ -124,10 +124,7 @@ def detect_board(image_bgr: np.ndarray):
 
 
 # ─────────────────────────────────────────────
-# FIX 2: TILE SIZE
-# Your tiles are 64×64. YOLO's default imgsz=640 blows each up to 640×640.
-# Tell YOLO to use imgsz=64 to match tile size → much less compute.
-# If accuracy drops, try imgsz=128. Don't go below 32.
+# SLICE BOARD INTO 64 TILES
 # ─────────────────────────────────────────────
 def slice_board(board_img: np.ndarray):
     """Split 512×512 board into 64 tiles of 64×64."""
@@ -142,7 +139,7 @@ def slice_board(board_img: np.ndarray):
 
 def predict_tiles(tiles):
     """Batch-infer all 64 tiles in one model call."""
-    # Batch-infer all 64 tiles — use default imgsz (model's training size)
+    # Batch-infer all 64 tiles
     results_list = piece_model(tiles, conf=CONF_THRESHOLD, verbose=False)
 
     fen_chars = []
