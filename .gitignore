@@ -1,0 +1,10 @@
+# Chess Vision .gitignore
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+runs/
+ultralytics/
+*.egg-info/
+build/
+dist/
