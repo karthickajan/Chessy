@@ -121,8 +121,8 @@ def slice_board(board_img: np.ndarray):
 
 def predict_tiles(tiles):
     """Batch-infer all 64 tiles in one model call."""
-    # ← FIX 2: imgsz=64 matches your actual tile size
-    results_list = piece_model(tiles, conf=CONF_THRESHOLD, verbose=False, imgsz=64)
+    # Batch-infer all 64 tiles — use default imgsz (model's training size)
+    results_list = piece_model(tiles, conf=CONF_THRESHOLD, verbose=False)
 
     fen_chars = []
     for result in results_list:
