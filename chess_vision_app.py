@@ -124,41 +124,35 @@ def detect_board(image_bgr: np.ndarray):
 
 
 # ─────────────────────────────────────────────
-# PIECE DETECTION — ONE inference on full board
-# The model detects all pieces at once with bounding boxes.
-# We map each box's centroid to a grid cell (row, col).
+# SLICE BOARD INTO 64 TILES
 # ─────────────────────────────────────────────
-def predict_pieces(board_512: np.ndarray):
-    """
-    Run piece_model ONCE on the 512×512 board image.
-    Map bounding box centroids → grid cells → FEN chars.
-    Returns list of 64 FEN characters.
-    """
-    cell = 64  # 512 / 8
+def slice_board(board_img: np.ndarray):
+    """Split 512×512 board into 64 tiles of 64×64."""
+    cell = board_img.shape[0] // 8
+    tiles = []
+    for row in range(8):
+        for col in range(8):
+            tile = board_img[row*cell:(row+1)*cell, col*cell:(col+1)*cell]
+            tiles.append(tile)
+    return tiles
 
-    results = piece_model(board_512, conf=CONF_THRESHOLD, imgsz=512, verbose=False)
 
-    fen_grid = ["1"] * 64
+def predict_tiles(tiles):
+    """Batch-infer all 64 tiles in one model call."""
+    # Batch-infer all 64 tiles
+    results_list = piece_model(tiles, conf=CONF_THRESHOLD, verbose=False)
 
-    if results[0].boxes is None or len(results[0].boxes) == 0:
-        return fen_grid
-
-    for box in results[0].boxes:
-        cls = int(box.cls[0])
-        piece = CLASS_TO_FEN.get(cls)
-        if piece is None:  # board, empty squares — skip
-            continue
-        # Get centroid of bounding box
-        x1, y1, x2, y2 = box.xyxy[0].tolist()
-        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-        col = max(0, min(7, int(cx / cell)))
-        row = max(0, min(7, int(cy / cell)))
-        idx = row * 8 + col
-        # Keep highest confidence if two detections in same cell
-        if fen_grid[idx] == "1":
-            fen_grid[idx] = piece
-
-    return fen_grid
+    fen_chars = []
+    for result in results_list:
+        boxes = result.boxes
+        if boxes is None or len(boxes) == 0:
+            fen_chars.append("1")
+        else:
+            best_idx = int(boxes.conf.argmax())
+            cls = int(boxes.cls[best_idx])
+            piece = CLASS_TO_FEN.get(cls)
+            fen_chars.append(piece if piece else "1")
+    return fen_chars
 
 
 # ─────────────────────────────────────────────
@@ -220,9 +214,12 @@ def analyze_board(image: np.ndarray, player_turn: str):
     board, coord = result
 
     t2 = time.perf_counter()
-    fen_chars = predict_pieces(board)
+    tiles = slice_board(board)
 
     t3 = time.perf_counter()
+    fen_chars = predict_tiles(tiles)
+
+    t4 = time.perf_counter()
     turn = "w" if player_turn == "White to move" else "b"
     fen  = build_fen(fen_chars)
     url  = build_lichess_url(fen, turn)
@@ -230,11 +227,11 @@ def analyze_board(image: np.ndarray, player_turn: str):
     annotated_rgb = cv2.cvtColor(draw_grid(board, fen_chars), cv2.COLOR_BGR2RGB)
 
     pieces = 64 - fen_chars.count("1")
-    total  = t3 - t0
+    total  = t4 - t0
     status = (
         f"✅ {pieces} pieces found | "
         f"Board detect: {t2-t1:.1f}s | "
-        f"Piece detect: {t3-t2:.1f}s | "
+        f"Piece classify: {t4-t3:.1f}s | "
         f"Total: {total:.1f}s"
     )
     print(status)
